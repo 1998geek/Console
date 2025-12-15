@@ -1,0 +1,36 @@
+import os
+
+# local AI service configurations
+XINFERENCE_BASE_URL= os.environ.get("XINFERENCE_BASE_URL", "")
+XINFERENCE_TRANSLATE_MODEL_NAME = os.environ.get("XINFERENCE_TRANSLATE_MODEL_NAME", "")
+
+# Az translate configurations storage
+AZURE_STORAGE_ENDPOINT = os.environ.get("AZURE_STORAGE_ENDPOINT", "")
+AZURE_STORAGE_ACCOUNT_NAME = os.environ.get("AZURE_STORAGE_ACCOUNT_NAME", "")
+AZURE_STORAGE_KEY = os.environ.get("AZURE_STORAGE_KEY", "")
+AZURE_STORAGE_CONTAINER_NAME = os.environ.get('AZURE_STORAGE_CONTAINER_NAME', "")
+AZURE_TARGET_CONTAINER_NAME = os.environ.get('AZURE_TARGET_CONTAINER_NAME', "")
+AZURE_CONNECTION_STRING = os.environ.get('AZURE_CONNECTION_STRING', "")
+
+# Az translate configurations -- service endpoint and key
+AZURE_DOCUMENT_TRANSLATION_ENDPOINT = os.environ.get("AZURE_DOCUMENT_TRANSLATION_ENDPOINT", "") 
+AZURE_DOCUMENT_TRANSLATION_KEY = os.environ.get('AZURE_DOCUMENT_TRANSLATION_KEY', "")
+
+AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+AZURE_OPENAI_TOKEN = os.environ.get("AZURE_OPENAI_TOKEN", "")
+AZURE_GROK3_REST_ENDPOINT = os.environ.get("AZURE_GROK3_REST_ENDPOINT", "")
+
+ALIYUN_AI_ENDPOINT = os.environ.get("ALIYUN_AI_ENDPOINT", "")
+ALIYUN_AI_TOKEN = os.environ.get("ALIYUN_AI_TOKEN", "")
+
+DIFY_API_BASE_URL_DEFAULT = os.environ.get("DIFY_API_BASE_URL_DEFAULT", "")
+DIFY_API_KEY_DEFAULT = os.environ.get("DIFY_API_KEY_DEFAULT", "")
+
+DIFY_API_CASE_STUDY_URL = os.environ.get("DIFY_API_CASE_STUDY_URL", "")
+DIFY_API_CASE_STUDY_KEY = os.environ.get("DIFY_API_CASE_STUDY_KEY", "")
+
+DATABASE_HOST = os.environ.get("DATABASE_HOST", "")
+DATABASE_PORT = os.environ.get("DATABASE_PORT", "")
+DATABASE_NAME = os.environ.get("DATABASE_NAME", "")
+DATABASE_USER = os.environ.get("DATABASE_USER", "")
+DATABASE_PASSWORD = os.environ.get("DATABASE_PASSWORD", "")

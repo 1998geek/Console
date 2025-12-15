@@ -1,0 +1,28 @@
+streamlit
+openai
+python-dotenv
+# pandas
+# openpyxl
+# langchain
+# tiktoken
+# PyPDF2
+azure-identity
+azure-search-documents==11.4.0
+psycopg2-binary
+# chromadb
+# pydub
+azure-storage-blob
+# azure-ai-documentintelligence
+azure-ai-translation-document
+python-docx
+python-pptx
+openpyxl
+PyMuPDF
+
+mammoth
+lxml
+jieba
+
+# markdownify
+html2text
+markdown

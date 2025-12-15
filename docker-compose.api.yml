@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # FastAPI Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: aiportal-api
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - DEBUG=true
+      - DATABASE_URL=${DATABASE_URL}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      - AZURE_SEARCH_ENDPOINT=${AZURE_SEARCH_ENDPOINT}
+      - AZURE_SEARCH_KEY=${AZURE_SEARCH_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./api:/app/api
+      - ./function:/app/function
+      - upload_data:/tmp/uploads
+    restart: unless-stopped
+    networks:
+      - aiportal-network
+
+  # Optional: Redis for task queue
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: aiportal-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - aiportal-network
+
+  # Optional: PostgreSQL database
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: aiportal-db
+  #   environment:
+  #     - POSTGRES_USER=aiportal
+  #     - POSTGRES_PASSWORD=aiportal
+  #     - POSTGRES_DB=aiportal
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - aiportal-network
+
+volumes:
+  upload_data:
+  # redis_data:
+  # postgres_data:
+
+networks:
+  aiportal-network:
+    driver: bridge

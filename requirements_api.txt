@@ -1,0 +1,36 @@
+# FastAPI Core
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.9.0  # Python 3.13 compatible
+pydantic-settings>=2.5.0  # Python 3.13 compatible
+
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Async & File handling
+aiofiles==23.2.1
+httpx==0.26.0
+
+# Existing project dependencies (reuse)
+python-dotenv
+openai
+azure-identity
+azure-search-documents==11.4.0
+psycopg2-binary
+azure-storage-blob
+azure-ai-translation-document
+python-docx
+python-pptx
+openpyxl
+PyMuPDF
+mammoth
+lxml
+jieba
+html2text
+markdown
+
+# Optional: Task queue (uncomment if needed)
+# celery==5.3.4
+# redis==5.0.1

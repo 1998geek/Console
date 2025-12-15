@@ -1,0 +1,188 @@
+================================================================================
+🔴 重要！您现在遇到的问题就是没有正确使用 Swagger UI 的认证！
+================================================================================
+
+从日志可以看到，logout 请求的 headers 中 **没有 authorization 字段**：
+
+❌ 错误的请求 (您现在的情况):
+Headers: {
+  'host': 'localhost:8000',
+  'user-agent': 'Mozilla/5.0...',
+  'accept': 'application/json',
+  // ❌ 缺少 'authorization': 'Bearer <token>'
+}
+→ 结果: 403 Forbidden
+
+✅ 正确的请求 (应该是这样):
+Headers: {
+  'host': 'localhost:8000',
+  'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',  ← 必须有这个！
+  'accept': 'application/json',
+  ...
+}
+→ 结果: 200 OK
+
+================================================================================
+🎯 正确的操作步骤（请严格按照这个顺序操作）：
+================================================================================
+
+步骤 1️⃣: 登录获取 Token
+------------------------
+1. 在 Swagger UI 中找到 "POST /api/v1/auth/login"
+2. 点击 "Try it out"
+3. 输入：
+   {
+     "username": "admin",
+     "password": "admin123"
+   }
+4. 点击 "Execute"
+5. 在 Response body 中找到并 **完整复制** access_token 的值
+   
+   例如：
+   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImlzX2FkbWluIjp0cnVlLCJleHAiOjE3NjM3MTAxOTQsInR5cGUiOiJhY2Nlc3MifQ.p8G2EaIZuEwjRgA3UBqkwXwbpcvhMVq_G3gQW6DbJ9c
+
+
+步骤 2️⃣: 点击 Authorize 按钮 🔓 (最关键的一步！)
+------------------------------------------------
+⚠️ 这是您遗漏的步骤！必须做这一步！
+
+1. **向上滚动页面** 到最顶部
+2. 在页面的 **右上角**，您会看到一个 **绿色的 "Authorize" 按钮**，旁边有一个 🔓 锁图标
+3. **点击这个 "Authorize" 按钮**
+4. 会弹出一个对话框，标题是 "Available authorizations"
+
+
+步骤 3️⃣: 输入 Token
+-------------------
+在弹出的对话框中：
+
+1. 找到 "Bearer (http, Bearer)" 这一行
+2. 在下面的 "Value" 输入框中，**粘贴您刚才复制的 access_token**
+   
+   可以直接粘贴：
+   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   
+   或者带 Bearer 前缀：
+   Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+3. 点击对话框底部的 **"Authorize" 按钮**
+4. 点击 **"Close"** 关闭对话框
+
+
+步骤 4️⃣: 验证是否成功授权
+--------------------------
+授权成功后，您会看到：
+
+1. 右上角的锁图标从 🔓 变成 🔒
+2. "Authorize" 按钮的颜色可能会改变
+3. 在每个需要认证的接口旁边，会显示一个小锁图标 🔒
+
+
+步骤 5️⃣: 测试接口
+------------------
+现在再测试 logout 接口：
+
+1. 找到 "POST /api/v1/auth/logout"
+2. 点击 "Try it out"
+3. 点击 "Execute"
+4. 这次应该返回 **200 OK**！
+
+================================================================================
+🔍 如何判断是否正确授权？
+================================================================================
+
+✅ 正确授权后，服务器日志应该显示：
+
+============================================================
+📥 POST /api/v1/auth/logout
+   Headers: {
+     ...
+     'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',  ← 应该有这个！
+     ...
+   }
+🔍 DEBUG: get_current_user called
+🔍 DEBUG: Received credentials object: <HTTPAuthorizationCredentials>
+🔍 DEBUG: Extracted token (first 30 chars): eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+🔍 DEBUG: Decoded payload: {'sub': 'admin', 'is_admin': True, ...}
+✅ DEBUG: Authentication successful for user: admin
+📤 POST /api/v1/auth/logout - 200 - 0.003s
+============================================================
+
+❌ 没有正确授权时（您现在的情况），服务器日志显示：
+
+============================================================
+📥 POST /api/v1/auth/logout
+   Headers: {
+     ...
+     // ❌ 没有 'authorization' 字段
+   }
+📤 POST /api/v1/auth/logout - 403 - 0.001s  ← 直接返回 403
+============================================================
+
+区别：
+- ❌ 没有调用 get_current_user 函数
+- ❌ 没有 DEBUG 日志输出
+- ❌ 直接返回 403 Forbidden
+- ❌ 因为 HTTPBearer 在请求中找不到 Authorization header！
+
+================================================================================
+🎨 Swagger UI 页面布局参考
+================================================================================
+
++----------------------------------------------------------------+
+|  AIPortal API                          🔓 Authorize  [Sign out] | ← 点击这里！
++----------------------------------------------------------------+
+|                                                                  |
+|  Schemas ▼    [Explore]                                        |
+|                                                                  |
+|  Authentication                                                  |
+|    ┌─────────────────────────────────────────────────┐        |
+|    │ POST /api/v1/auth/login                          │        |
+|    │ POST /api/v1/auth/refresh                        │        |
+|    │ GET  /api/v1/auth/me                      🔒     │        |
+|    │ POST /api/v1/auth/logout                  🔒     │        |
+|    └─────────────────────────────────────────────────┘        |
+|                                                                  |
+|  Translation                                                     |
+|    ...                                                          |
++----------------------------------------------------------------+
+
+注意：
+- 授权前：🔓 (开锁图标)
+- 授权后：🔒 (闭锁图标)
+- 需要认证的接口旁边也会显示 🔒
+
+================================================================================
+📝 总结
+================================================================================
+
+您现在的问题：
+❌ 没有点击 Swagger UI 右上角的 "Authorize" 按钮
+❌ 导致请求中没有 Authorization header
+❌ 所以 API 返回 403 Forbidden
+
+解决方法：
+✅ 向上滚动到页面顶部
+✅ 找到右上角的绿色 "Authorize" 按钮（🔓）
+✅ 点击它，在对话框中输入 access_token
+✅ 点击 "Authorize" 然后 "Close"
+✅ 确认锁图标变成 🔒
+✅ 再次测试接口 → 应该返回 200 OK
+
+================================================================================
+🧪 使用 test_auth.py 验证 API 是正常的
+================================================================================
+
+如果您想确认 API 本身没有问题，可以运行：
+
+cd /home/user/webapp
+python test_auth.py
+
+这个脚本会自动完成整个认证流程并显示：
+✅ Login successful!
+✅ /me endpoint successful!
+✅ Logout successful!
+
+这证明 API 本身工作正常，问题只是 Swagger UI 的使用方法。
+
+================================================================================

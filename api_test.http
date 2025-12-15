@@ -1,0 +1,164 @@
+### AIPortal FastAPI Test Requests
+### Use the REST Client extension in VS Code to run these
+
+@baseUrl = http://localhost:8000
+@apiV1 = {{baseUrl}}/api/v1
+
+###############################################
+# 1. Health Check
+###############################################
+
+### Health Check
+GET {{baseUrl}}/health
+
+### API Info
+GET {{baseUrl}}/
+
+###############################################
+# 2. Authentication
+###############################################
+
+### Login as Admin
+# @name login
+POST {{apiV1}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### Save token from login response
+@accessToken = {{login.response.body.access_token}}
+@refreshToken = {{login.response.body.refresh_token}}
+
+### Get Current User Info
+GET {{apiV1}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Refresh Token
+POST {{apiV1}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### Logout
+POST {{apiV1}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+###############################################
+# 3. Translation APIs
+###############################################
+
+### Get Supported Languages
+GET {{apiV1}}/translate/languages
+
+### Translate Text
+POST {{apiV1}}/translate/text
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "text": "你好，世界！欢迎使用 AIPortal API。",
+  "source_lang": "zh-Hans",
+  "target_lang": "en",
+  "use_cloud": true
+}
+
+### Translate Document (Upload)
+# Note: You need to manually upload a file for this
+POST {{apiV1}}/translate/document?source_lang=zh-Hans&target_lang=en&use_cloud=true
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="test.txt"
+Content-Type: text/plain
+
+Hello World
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Get Translation Status
+# @name taskId
+GET {{apiV1}}/translate/status/task_abc123
+Authorization: Bearer {{accessToken}}
+
+###############################################
+# 4. Chat APIs
+###############################################
+
+### Get Available Models
+GET {{apiV1}}/chat/models
+
+### Chat Completion
+POST {{apiV1}}/chat/completion
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "message": "请用一句话介绍 FastAPI",
+  "model": "gpt-4",
+  "temperature": 0.7,
+  "max_tokens": 2000
+}
+
+### Multimodal Chat
+POST {{apiV1}}/chat/multimodal
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "message": "这张图片是什么？",
+  "image_urls": ["https://example.com/image.jpg"],
+  "model": "gpt-4-vision"
+}
+
+###############################################
+# 5. Document Review APIs
+###############################################
+
+### Review Contract (Upload)
+POST {{apiV1}}/review/contract?analysis_type=comprehensive
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="contract.pdf"
+Content-Type: application/pdf
+
+(binary content here)
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Review Bidding Document
+POST {{apiV1}}/review/bidding?check_compliance=true&check_completeness=true
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="bidding.pdf"
+Content-Type: application/pdf
+
+(binary content here)
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###############################################
+# 6. Error Testing
+###############################################
+
+### Test Invalid Token
+GET {{apiV1}}/auth/me
+Authorization: Bearer invalid_token_here
+
+### Test Missing Auth
+GET {{apiV1}}/translate/text
+
+### Test Invalid Credentials
+POST {{apiV1}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "invalid",
+  "password": "wrong"
+}
