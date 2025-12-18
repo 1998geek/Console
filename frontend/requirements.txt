@@ -1,0 +1,6 @@
+streamlit
+requests
+python-dotenv
+pandas
+extra-streamlit-components # Cookie 管理
+plotly

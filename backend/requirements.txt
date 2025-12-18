@@ -1,0 +1,22 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+alembic
+pydantic
+pydantic-settings
+python-jose[cryptography]  # JWT
+passlib[bcrypt]            # 密码加密
+bcrypt==3.2.2
+python-multipart           # Form data
+redis                      # Redis 客户端
+python-dotenv
+requests
+httpx
+openai                     # AI SDK
+azure-ai-translation-document # Azure SDK
+azure-storage-blob
+python-docx
+openpyxl
+python-pptx
+

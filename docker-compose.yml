@@ -1,0 +1,41 @@
+services:
+  # 1. Redis (缓存服务 - 保留)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: always
+
+  # 2. Backend (后端 API)
+  backend:
+    build: ./backend
+    # 启动命令
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # ⚠️ 关键：这里会读取你本地 .env 文件里的 DATABASE_URL
+      # 请确保你的 .env 文件里填的是远程数据库的地址
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-changethis_secret_key}
+    depends_on:
+      - redis
+      # ❌ 已删除: - db (千万不要再加回来)
+
+  # 3. Frontend (前端 UI)
+  frontend:
+    build: ./frontend
+    command: streamlit run src/main.py
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://backend:8000/api
+    depends_on:
+      - backend
