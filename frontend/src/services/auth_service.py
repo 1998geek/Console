@@ -17,7 +17,10 @@ def login(username, password):
             return {"success": True, "token": token, "username": username}
         return {"success": False, "message": "No token received"}
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        error_msg = str(e)
+        if "Connection refused" in error_msg or "Max retries exceeded" in error_msg:
+             return {"success": False, "message": "正在登录... (后端服务启动中，请稍候)"}
+        return {"success": False, "message": error_msg}
 
 def register(username, password, email=None):
     try:

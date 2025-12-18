@@ -109,6 +109,68 @@ class AzureDocumentTranslator:
         self.storage.ensure_container_exists(self.source_container)
         self.storage.ensure_container_exists(self.target_container)
 
+    def check_target_exists(self, filename: str) -> bool:
+        """Check if the target file already exists in the target container."""
+        try:
+            target_blob_client = self.storage.blob_service_client.get_blob_client(
+                container=self.target_container, 
+                blob=filename
+            )
+            return target_blob_client.exists()
+        except Exception as e:
+            logger.warning(f"Failed to check target existence: {e}")
+            return False
+
+    def start_translation_async(self, file_name_or_prefix: str, to_language: str = 'zh') -> str:
+        """
+        Starts document translation asynchronously and returns the operation ID (not waiting for completion).
+        """
+        self.ensure_containers()
+        
+        # Generate SAS URLs
+        source_sas_url = self.storage.generate_container_sas_url(self.source_container, permission='rl')
+        target_sas_url = self.storage.generate_container_sas_url(self.target_container, permission='wl')
+
+        translation_client = DocumentTranslationClient(
+            self.endpoint,
+            AzureKeyCredential(self.key)
+        )
+
+        inputs = [
+            DocumentTranslationInput(
+                source_url=source_sas_url,
+                targets=[TranslationTarget(target_url=target_sas_url, language=to_language)],
+                prefix=file_name_or_prefix
+            )
+        ]
+
+        try:
+            # begin_translation returns a poller. We can get the ID from it.
+            poller = translation_client.begin_translation(inputs=inputs)
+            # The operation ID is usually part of the polling URL or details.
+            # In Azure SDK, poller.details['id'] usually holds the operation ID.
+            return poller.id
+        except Exception as e:
+            logger.error(f"Async document translation error: {str(e)}")
+            raise e
+
+    def check_translation_status(self, operation_id: str) -> str:
+        """
+        Checks the status of a translation operation.
+        Returns: 'NotStarted', 'Running', 'Succeeded', 'Failed', 'Cancelled', 'ValidationFailed'
+        """
+        translation_client = DocumentTranslationClient(
+            self.endpoint,
+            AzureKeyCredential(self.key)
+        )
+        
+        try:
+            status = translation_client.get_translation_status(operation_id)
+            return status.status
+        except Exception as e:
+            logger.error(f"Error checking translation status: {str(e)}")
+            raise e
+
     def start_translation(self, file_name_or_prefix: str, to_language: str = 'zh') -> str:
         """
         Starts document translation and returns the result SAS URL.
@@ -118,6 +180,30 @@ class AzureDocumentTranslator:
         # Generate SAS URLs
         source_sas_url = self.storage.generate_container_sas_url(self.source_container, permission='rl')
         target_sas_url = self.storage.generate_container_sas_url(self.target_container, permission='wl')
+
+        # Check if target file already exists
+        try:
+            # Note: Azure Translation Service usually names the target file same as source file (or using prefix)
+            # If we can check if the blob exists, we can return early.
+            # The file name in target container is 'file_name_or_prefix' because we used it as prefix and it's a single file.
+            # However, translation service might append language code if not specified? 
+            # Usually with 'prefix' input, it keeps the name.
+            
+            # Let's check if the blob exists in the target container
+            target_blob_client = self.storage.blob_service_client.get_blob_client(
+                container=self.target_container, 
+                blob=file_name_or_prefix
+            )
+            
+            if target_blob_client.exists():
+                logger.info(f"Target file {file_name_or_prefix} already exists. Returning existing file.")
+                return self.storage.generate_blob_sas_url(
+                    container_name=self.target_container,
+                    blob_name=file_name_or_prefix
+                )
+        except Exception as check_ex:
+            logger.warning(f"Failed to check if target blob exists: {check_ex}")
+            # Continue to translation if check fails
 
         translation_client = DocumentTranslationClient(
             self.endpoint,

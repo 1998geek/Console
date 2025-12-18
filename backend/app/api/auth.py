@@ -19,13 +19,24 @@ def login_access_token(
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     user = db.query(User).filter(User.username == form_data.username).first()
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+    
+    # 1. Check if user exists
+    if not user:
+         raise HTTPException(
+            status_code=400, # Use 400 to distinguish from 401 if needed, or stick to 401 but different message
+            detail="账号错误，核对账号后在进行登录",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    elif not user.is_active:
+    
+    # 2. Check password
+    if not security.verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=400, 
+            detail="密码错误请从新输入",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -53,8 +64,6 @@ def register_user(
         username=user_in.username,
         email=user_in.email,
         hashed_password=security.get_password_hash(user_in.password),
-        is_active=True,
-        is_admin=False,
     )
     db.add(user)
     db.commit()

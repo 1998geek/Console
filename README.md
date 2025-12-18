@@ -1,114 +1,180 @@
-# AI Console
+# 🚀 AI Console - 企业级智能增效平台
 
-AI Console 是一个集成了 Azure AI 服务的企业级应用平台，提供文档翻译、智能对话等功能。项目采用前后端分离架构，后端基于 FastAPI，前端使用 Streamlit。
+**AI Console** 是一个集成了多种前沿 AI 能力的企业级服务平台，旨在通过智能化工具提升企业文档处理、合同审查及多模态交互的效率。
 
-## 🚀 最新功能
+## 📋 项目简介
 
-### 📚 智能文档翻译服务 (Document Translation)
-新版翻译服务已迁移至后端 API，支持多种模式和文件格式：
+平台采用 **Streamlit** + **FastAPI** 的前后端分离架构，提供直观的 Web 界面和强大的 RESTful API。
 
-- **支持格式**: `.docx`, `.xlsx`, `.pptx`, `.pdf`
-- **双模引擎**:
-  - **CLOUD 模式** (推荐): 基于 Azure Document Translation 服务。
-    - ✅ 支持原样保留文档排版 (如 PPTX, PDF)。
-    - ✅ 支持大文件和批量处理。
-    - ⚠️ 需要配置 Azure Storage。
-  - **LOCAL 模式**: 基于 Azure OpenAI (LLM) 的语义翻译。
-    - ✅ 适合 `.docx`, `.xlsx`, `.pptx` 的精准语义翻译。
-    - ❌ 暂不支持 PDF。
+### ✨ 核心特性
 
-## 🛠 技术栈
+*   **🌐 文档工具**: 集成 Azure 云端翻译与本地大模型翻译，支持 Word/PDF 等多格式文档处理及自动编号。
+*   **⚖️ 合同助手**: 智能审查合同风险、合规性检查及文档差异比对。
+*   **🤖 智能体集成**: 接入 Dify 智能体与本地模型，支持多模态对话。
+*   **👁️ 多模态应用**: 提供图片智能识别与 Sora 视频生成模拟功能。
+*   **🔐 安全可靠**: 完善的用户认证（JWT）、权限管理及操作日志。
 
-- **Backend**: Python 3.10+, FastAPI, SQLAlchemy, Pydantic
-- **Frontend**: Streamlit
-- **Database**: PostgreSQL (Citus 扩展)
-- **Cache**: Redis
-- **AI Services**: Azure OpenAI, Azure Document Translation, Azure Blob Storage
-- **Infrastructure**: Docker, Docker Compose
+## 🏗️ 架构概览
 
-## 🏁 快速开始
-
-### 1. 环境准备
-确保本地已安装 [Docker](https://www.docker.com/) 和 [Docker Compose](https://docs.docker.com/compose/)。
-
-### 2. 配置环境变量
-复制 `.env.example` (如果有) 或创建 `.env` 文件，填入以下必要信息：
-
-```ini
-# Security
-SECRET_KEY=your_secret_key
-ALGORITHM=HS256
-
-# Database
-DATABASE_URL=postgresql://user:password@host:port/dbname
-
-# Azure OpenAI (LLM & Local Translation)
-AZURE_OPENAI_API_KEY=your_key
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_VERSION=2024-02-15-preview
-
-# Azure Document Translation (Cloud Translation)
-AZURE_TRANSLATOR_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
-AZURE_TRANSLATOR_KEY=your_key
-AZURE_TRANSLATOR_REGION=eastus
-
-# Azure Storage (Required for Cloud Translation)
-AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
+```mermaid
+graph TD
+    Client[Web Browser] --> FE[Streamlit Frontend]
+    FE --> API[FastAPI Backend]
+    API --> DB[(PostgreSQL)]
+    API --> Redis[(Redis Cache)]
+    API --> Azure[Azure AI Services]
+    API --> Dify[Dify Agent]
 ```
 
-### 3. 启动服务
+*   **Frontend**: Streamlit, Python
+*   **Backend**: FastAPI, SQLAlchemy, Pydantic
+*   **Infrastructure**: Docker, Docker Compose, Redis, PostgreSQL
+
+## 🧩 架构细节
+
+### 1) 前端（Streamlit）
+
+*   入口：`AI_Console/frontend/src/main.py`
+*   页面组织：`AI_Console/frontend/src/views/**`（按业务域拆分：文档工具 / 合同助手 / 智能体 / 多模态 / 自动化 / 管理员）
+*   API 调用：`AI_Console/frontend/src/services/api_client.py` 统一注入 JWT Token，并支持 `form-data` 与 `json` 两种请求方式
+*   典型交互模式：
+    *   同步下载：上传文件 → 后端返回文件流 → 前端提供重命名输入框 → 下载
+    *   异步任务：提交任务 → 获取 `task_id` → 轮询状态接口 → 展示进度与结果（例如云端翻译、Sora 模拟任务）
+
+### 2) 后端（FastAPI）
+
+*   应用入口：`AI_Console/backend/app/main.py`
+*   路由层：`AI_Console/backend/app/api/**`
+    *   文档工具：`app/api/doc_tools.py`
+    *   合同助手：`app/api/contract.py`
+    *   多模态：`app/api/multimodal.py`
+    *   任务查询：`app/api/tasks.py`
+*   业务层：`AI_Console/backend/app/services/**`
+    *   文档翻译：`app/services/translator.py`
+    *   Azure 调用封装：`app/services/azure_ai.py`、`app/services/azure_translator.py`
+    *   合同审查：`app/services/reviewer.py`
+    *   Sora 模拟任务：`app/services/media_gen.py`
+*   文档解析与回写：`AI_Console/backend/app/utils/doc_parsers.py`（DOCX/XLSX/PPTX 的“拆分-翻译-重建”）
+
+### 3) 认证与权限
+
+*   登录获取 JWT：前端通过表单提交用户名/密码，后端签发 token
+*   受保护路由：后端在路由层统一依赖 `get_current_user`，未登录请求会返回 401
+*   管理员能力：前端根据 `is_admin` 控制管理员控制台入口展示
+
+### 4) 异步任务与进度
+
+*   任务状态存储：Redis（用于任务 `status/progress/result` 等字段）
+*   查询方式：前端轮询任务状态接口，实时刷新进度条与状态文本
+*   典型状态：
+    *   文档翻译（云端）：`pending → processing → completed/failed`
+    *   Sora（模拟）：`pending → processing → succeeded/failed`
+
+### 5) 关键流程示意
+
+**云端文档翻译（异步）**
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Streamlit
+    participant API as FastAPI
+    participant R as Redis
+    participant AZ as Azure Document Translation
+
+    U->>FE: 上传文件 + 目标语言
+    FE->>API: POST /api/doc-tools/translate/document/task
+    API->>R: init_task(task_id)
+    API->>AZ: 上传源文件并提交翻译任务
+    loop 轮询
+      FE->>API: GET /api/tasks/{task_id}
+      API->>R: 读取 progress/status/result
+      API-->>FE: 返回进度与状态
+    end
+    FE-->>U: 下载链接 + 重命名保存
+```
+
+**Sora 视频生成（模拟）**
+
+```mermaid
+sequenceDiagram
+    participant FE as Streamlit
+    participant API as FastAPI
+    participant R as Redis
+
+    FE->>API: POST /api/multimodal/sora/generate (prompt,width,height,duration)
+    API->>R: init_task(task_id)
+    API-->>FE: task_id
+    API->>R: processing
+    API->>R: succeeded + result_url
+    loop 轮询
+      FE->>API: GET /api/multimodal/sora/status/{task_id}
+      API->>R: 读取 status/result
+    end
+    API-->>FE: status/result
+```
+
+## 🚀 快速开始
+
+### 1. 环境要求
+
+*   Docker & Docker Compose
+*   Python 3.10+ (若本地运行)
+
+### 2. 启动服务
+
+使用 Docker Compose 一键启动所有服务：
+
 ```bash
-docker-compose up -d --build
+cd AI_Console
+docker-compose up -d
 ```
 
-- **Backend API**: http://localhost:8000/docs
-- **Frontend UI**: http://localhost:8501
+启动后访问：
+*   **前端 UI**: [http://localhost:8501](http://localhost:8501)
+*   **后端 API 文档**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-## 🔌 API 接口文档
+### 3. 默认账号
 
-详细 API 文档请在服务启动后访问 Swagger UI: `http://localhost:8000/docs`
+*   **管理员**: `admin` / `admin123456` (或查看数据库初始化配置)
 
-### 核心接口说明
+## 🎯 功能模块详情
 
-#### 1. 文档翻译
-**POST** `/api/doc-tools/translate/document`
+### 📂 文档工具 (Doc Tools)
+*   **云端文档翻译**: 基于 Azure Translation 服务，支持保留文档格式。
+*   **本地模型翻译**: 利用本地部署的大语言模型进行隐私文档翻译。
+*   **文档自动编号**: 智能解析文档结构，自动重排章节编号。
 
-上传文件并进行翻译，返回翻译后的文件流。
+### ⚖️ 合同助手 (Contract Assistant)
+*   **合同智能初审**: 自动识别合同中的风险条款并给出修改建议。
+*   **标书合规审查**: 针对标书文件进行关键要素抽取与合规性检查。
+*   **文档智能比对**: 基于语义分词的文档差异高亮比对。
 
-- **Parameters (Form Data)**:
-  - `file`: (File, Required) 待翻译文件
-  - `target_lang`: (String, Required) 目标语言代码 (如 `en`, `zh-Hans`, `ja`)
-  - `mode`: (String, Optional) 翻译模式，默认为 `local`
-    - `cloud`: 使用 Azure 文档翻译服务 (支持 PDF)
-    - `local`: 使用 LLM 逐段翻译
+### 🤖 智能体与多模态
+*   **Dify 智能体**: 集成企业知识库的智能问答助手。
+*   **图片智能识别**: 解析上传图片内容，生成详细描述。
+*   **Sora 视频生成**: 模拟文生视频任务流，支持异步任务状态轮询。
 
-#### 2. 文本翻译
-**POST** `/api/doc-tools/translate/text`
-
-使用 LLM 进行直接文本翻译。
-
-- **Body (JSON)**:
-  ```json
-  {
-    "text": "Hello world",
-    "source_lang": "auto",
-    "target_lang": "zh-Hans"
-  }
-  ```
-
-## 📂 项目结构
+## 📁 目录结构
 
 ```
 AI_Console/
-├── backend/            # FastAPI 后端应用
+├── backend/                # FastAPI 后端
 │   ├── app/
-│   │   ├── api/        # 路由定义 (doc_tools.py, auth.py)
-│   │   ├── services/   # 业务逻辑 (translator.py, azure_ai.py)
-│   │   ├── schemas/    # Pydantic 数据模型
-│   │   └── utils/      # 工具类 (doc_parsers.py)
-│   ├── requirements.txt
+│   │   ├── api/            # API 路由定义
+│   │   ├── services/       # 业务逻辑实现
+│   │   ├── models/         # 数据库模型
+│   │   └── core/           # 核心配置
 │   └── Dockerfile
-├── frontend/           # Streamlit 前端应用
-├── docker-compose.yml
-└── README.md
+├── frontend/               # Streamlit 前端
+│   ├── src/
+│   │   ├── views/          # 页面视图组件
+│   │   └── services/       # API 客户端
+│   └── Dockerfile
+├── docker-compose.yml      # 容器编排配置
+└── README.md               # 项目文档
 ```
+
+## 📝 许可证
+
+MIT License

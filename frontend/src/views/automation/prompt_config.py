@@ -1,15 +1,86 @@
-import streamlit as st
-
-def render():
-    st.title(":material/settings: Prompt 配置")
-    st.markdown("配置审查模板与批量规则。")
-    col1, col2 = st.columns(2)
-    with col1:
-        prompt = st.text_area("单次审查 Prompt", height=200, value="")
-        save1 = st.button("保存单次配置", type="primary")
-    with col2:
-        batch_prompt = st.text_area("批量审查 Prompt", height=200, value="")
-        save2 = st.button("保存批量配置", type="primary")
-    if save1 or save2:
-        st.info("TODO: 调用 api_client")
-        st.success("配置已保存")
+import streamlit as st 
+from src.services.api_client import api_client 
+ 
+def show(): 
+    st.title("⚙️ 标书审核配置") 
+    st.markdown(""" 
+    在这里，您可以查看和修改用于标书图片智能审核的各项配置。 
+    - **Prompt**: 定义了AI在执行审核任务时的角色、规则和输出格式。 
+    - **通用设置**: 配置通用的参数，例如批量处理的图片数量阈值。 
+    - **保存**: 修改完成后，点击相应板块下的“保存”按钮即可生效。 
+    """) 
+ 
+    tab1, tab2, tab3 = st.tabs(["单项审核Prompt", "批量审核Prompt", "通用设置"]) 
+ 
+    # 辅助函数：加载配置 (从后端) 
+    def load_config(key): 
+        res = api_client.get(f"/automation/config/{key}") 
+        return res.get("value") if res else "" 
+ 
+    # 辅助函数：保存配置 (到后端) 
+    def save_config(key, value): 
+        return api_client.post("/automation/config", json={"key": key, "value": value}) 
+ 
+    with tab1: 
+        st.subheader("单项审核 (Single Item Review)") 
+        if 'prompt_single' not in st.session_state: 
+            st.session_state.prompt_single = load_config("prompt_single") or "加载失败或为空" 
+ 
+        edited_prompt_single = st.text_area( 
+            "Prompt for Single Item Review", 
+            value=st.session_state.prompt_single, 
+            height=400, 
+            key="text_area_single" 
+        ) 
+ 
+        if st.button("💾 保存单项审核Prompt", use_container_width=True, key="save_single"): 
+            if edited_prompt_single: 
+                if save_config("prompt_single", edited_prompt_single): 
+                    st.session_state.prompt_single = edited_prompt_single 
+                    st.success("✅ 单项审核Prompt已成功保存！") 
+                    st.toast("🎉 Prompt 已保存", icon="✅") 
+            else: 
+                st.error("❌ Prompt内容不能为空！") 
+ 
+    with tab2: 
+        st.subheader("批量审核 (Batch Review)") 
+        if 'prompt_batch' not in st.session_state: 
+            st.session_state.prompt_batch = load_config("prompt_batch") or "" 
+ 
+        edited_prompt_batch = st.text_area( 
+            "Prompt for Batch Review", 
+            value=st.session_state.prompt_batch, 
+            height=400, 
+            key="text_area_batch" 
+        ) 
+        if st.button("💾 保存批量审核Prompt", use_container_width=True, key="save_batch"): 
+            if edited_prompt_batch: 
+                if save_config("prompt_batch", edited_prompt_batch): 
+                    st.session_state.prompt_batch = edited_prompt_batch 
+                    st.success("✅ 批量审核Prompt已成功保存！") 
+                    st.toast("🎉 Prompt 已保存", icon="✅") 
+            else: 
+                st.error("❌ Prompt内容不能为空！") 
+ 
+    with tab3: 
+        st.subheader("通用设置 (General Settings)") 
+        if 'image_batch_threshold' not in st.session_state: 
+            val = load_config("IMAGE_BATCH_THRESHOLD") 
+            st.session_state.image_batch_threshold = int(val) if val else 5 
+ 
+        new_threshold = st.number_input( 
+            "图片批量处理阈值 (IMAGE_BATCH_THRESHOLD)", 
+            min_value=1, 
+            max_value=20, 
+            value=st.session_state.image_batch_threshold, 
+            step=1, 
+            help="当单个章节中的图片数量超过此阈值时，将触发批量审核模式。建议值为3-5。" 
+        ) 
+        
+        if st.button("💾 保存通用设置", use_container_width=True, key="save_settings"): 
+            if save_config("IMAGE_BATCH_THRESHOLD", str(new_threshold)): 
+                st.session_state.image_batch_threshold = new_threshold 
+                st.success(f"✅ 通用设置已成功保存！图片批量处理阈值已更新为 {new_threshold}。") 
+                st.toast("⚙️ 设置已保存", icon="✅") 
+ 
+render = show 

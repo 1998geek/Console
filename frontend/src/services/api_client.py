@@ -2,7 +2,7 @@ import os
 import requests
 import streamlit as st
 
-API_URL = os.getenv("API_URL", "http://backend:8000/api")
+API_URL = os.getenv("API_URL", "http://localhost:8000/api")
 
 class APIClient:
     def __init__(self):
@@ -42,11 +42,24 @@ class APIClient:
     def get(self, endpoint: str):
         url = f"{self.base_url}{endpoint}"
         try:
-            response = requests.get(url, headers=self._get_headers())
+            if "token" in st.session_state and st.session_state.get("token"):
+                headers = {"Authorization": f"Bearer {st.session_state.token}"}
+            elif self.token:
+                headers = {"Authorization": f"Bearer {self.token}"}
+            else:
+                raise Exception("请先登录")
+
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
-            raise e
+            if e.response is not None:
+                try:
+                    detail = e.response.json().get("detail", e.response.text)
+                    raise Exception(detail)
+                except Exception:
+                    raise Exception(str(e))
+            raise Exception(str(e))
 
     def upload_and_download(self, endpoint: str, files: dict, data: dict | None = None, timeout: int = 300):
         if "token" in st.session_state and st.session_state.get("token"):
@@ -92,5 +105,41 @@ class APIClient:
                 msg = str(e)
             st.error(f"请求失败: {msg}")
             return None
+    
+    def stream_post(self, endpoint: str, json: dict):
+        url = f"{self.base_url}{endpoint}"
+        headers = self._get_headers()
+        try:
+            response = requests.post(url, json=json, headers=headers, stream=True)
+            response.raise_for_status()
+            for chunk in response.iter_content(chunk_size=1024, decode_unicode=True):
+                if chunk:
+                    yield chunk
+        except requests.RequestException as e:
+            err = str(e)
+            if e.response is not None:
+                try:
+                    err = e.response.json().get("detail", e.response.text)
+                except Exception:
+                    err = e.response.text
+            raise Exception(err)
+
+    def delete(self, endpoint: str):
+        url = f"{self.base_url}{endpoint}"
+        try:
+            response = requests.delete(url, headers=self._get_headers())
+            response.raise_for_status()
+            try:
+                return response.json()
+            except Exception:
+                return {"success": True}
+        except requests.RequestException as e:
+            if e.response is not None:
+                try:
+                    detail = e.response.json().get("detail", str(e))
+                    raise Exception(detail)
+                except:
+                    raise Exception(str(e))
+            raise e
 
 api_client = APIClient()

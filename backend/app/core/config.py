@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # Vision
     AZURE_OPENAI_VISION_DEPLOYMENT: str = os.getenv("AZURE_OPENAI_VISION_DEPLOYMENT", "gpt-4o-mini")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    
+    # Xinference (Xorbits Inference) base URL for local models
+    XINFERENCE_BASE_URL: str = os.getenv("XINFERENCE_BASE_URL", "")
 
     class Config:
         case_sensitive = True

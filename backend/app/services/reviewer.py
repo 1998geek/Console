@@ -6,9 +6,19 @@ class ContractReviewer:
         self.llm = AzureLLMService()
         self.model = "gpt-4.1-mini"
 
-    def review_text(self, text: str) -> str:
+    @staticmethod
+    def _build_system_prompt(review_points: list[str] | None) -> str:
+        base = CONTRACT_REVIEW_SYSTEM_PROMPT.strip()
+        if review_points:
+            joined = "\n".join([f"- {p}" for p in review_points if p])
+            extra = f"\n请重点围绕以下用户关注要点进行审查：\n{joined}\n"
+            return base + extra
+        return base
+
+    def review_text(self, text: str, review_points: list[str] | None = None) -> str:
+        system_prompt = self._build_system_prompt(review_points)
         messages = [
-            {"role": "system", "content": CONTRACT_REVIEW_SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": text},
         ]
         response = self.llm.get_chat_completion(messages, model=self.model, stream=False)
@@ -20,9 +30,9 @@ class ContractReviewer:
                 return data["choices"][0]["message"]["content"].strip()
         raise Exception("Unexpected response format")
 
-    def review_document(self, file_content: bytes) -> str:
+    def review_document(self, file_content: bytes, review_points: list[str] | None = None) -> str:
         try:
             text = file_content.decode("utf-8", errors="ignore")
         except Exception:
             text = file_content.decode("latin-1", errors="ignore")
-        return self.review_text(text)
+        return self.review_text(text, review_points)
