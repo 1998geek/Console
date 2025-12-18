@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 import time
 from fastapi import FastAPI
 from sqlalchemy import text
-from app.api import auth, doc_tools
+from app.api import auth, doc_tools, contract, agent, admin, multimodal
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
@@ -38,6 +38,10 @@ app = FastAPI(
 
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(doc_tools.router, prefix="/api/doc-tools", tags=["Document Tools"])
+app.include_router(contract.router, prefix="/api/contract", tags=["Contract"])
+app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+app.include_router(multimodal.router, prefix="/api/multimodal", tags=["Multimodal"])
 
 
 @app.get("/")

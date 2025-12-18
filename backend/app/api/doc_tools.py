@@ -3,9 +3,12 @@ from fastapi.responses import StreamingResponse
 from app.services.translator import TranslationService
 from app.schemas.business import TranslationMode, TextTranslationRequest, TextTranslationResponse
 from app.services.azure_ai import AzureLLMService
+from app.api import deps
+from app.models.user import User
+from urllib.parse import quote
 import io
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(deps.get_current_user)])
 
 # Instantiate services
 translator_service = TranslationService()
@@ -39,12 +42,10 @@ async def translate_document(
             
         # Reset stream position just in case
         result_stream.seek(0)
-        
-        return StreamingResponse(
-            result_stream,
-            media_type="application/octet-stream",
-            headers={"Content-Disposition": f"attachment; filename=translated_{file.filename}"}
-        )
+        output_filename = f"translated_{file.filename}"
+        encoded_filename = quote(output_filename)
+        headers = {"Content-Disposition": f"attachment; filename*=utf-8''{encoded_filename}"}
+        return StreamingResponse(result_stream, media_type="application/octet-stream", headers=headers)
     except Exception as e:
         # Log the full error in a real app
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")

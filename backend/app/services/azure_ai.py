@@ -1,6 +1,7 @@
 import json
 import logging
 import requests
+import base64
 from openai import AzureOpenAI
 from app.core.config import settings
 
@@ -16,6 +17,7 @@ class AzureLLMService:
         self.azure_endpoint = settings.AZURE_OPENAI_ENDPOINT
         self.rest_endpoint = settings.AZURE_GROK3_REST_ENDPOINT
         self.api_version = "2025-01-01-preview"
+        self.vision_deployment = settings.AZURE_OPENAI_VISION_DEPLOYMENT
         
         if not self.api_key or not self.azure_endpoint:
             logger.warning("Azure OpenAI credentials are missing in settings.")
@@ -138,3 +140,27 @@ class AzureLLMService:
                                     yield content
                         except json.JSONDecodeError:
                             continue
+
+    def analyze_image(self, image_bytes: bytes, prompt: str = "Describe this image") -> str:
+        try:
+            b64 = base64.b64encode(image_bytes).decode("utf-8")
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
+                    ]
+                }
+            ]
+            resp = self.sdk_client.chat.completions.create(
+                model=self.vision_deployment,
+                messages=messages,
+                stream=False
+            )
+            if hasattr(resp, "choices") and resp.choices:
+                return resp.choices[0].message.content.strip()
+            return ""
+        except Exception as e:
+            logger.error(f"Vision analyze error: {e}")
+            raise e

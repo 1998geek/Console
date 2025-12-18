@@ -1,4 +1,5 @@
 from .api_client import api_client
+import streamlit as st
 
 def login(username, password):
     try:
@@ -12,6 +13,7 @@ def login(username, password):
         token = response.get("access_token")
         if token:
             api_client.set_token(token)
+            st.session_state.token = token
             return {"success": True, "token": token, "username": username}
         return {"success": False, "message": "No token received"}
     except Exception as e:

@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     AZURE_TARGET_CONTAINER_NAME: str = os.getenv("AZURE_TARGET_CONTAINER_NAME", "")
     AZURE_CONNECTION_STRING: str = os.getenv("AZURE_CONNECTION_STRING", "")
 
+    # Dify Agent
+    DIFY_API_KEY: str = os.getenv("DIFY_API_KEY", "")
+    DIFY_API_BASE: str = os.getenv("DIFY_API_BASE", "https://api.dify.ai/v1")
+
+    # Vision
+    AZURE_OPENAI_VISION_DEPLOYMENT: str = os.getenv("AZURE_OPENAI_VISION_DEPLOYMENT", "gpt-4o-mini")
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
     class Config:
         case_sensitive = True
 

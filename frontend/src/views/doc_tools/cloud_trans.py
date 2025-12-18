@@ -1,22 +1,44 @@
 import streamlit as st
+from src.services.api_client import api_client
 
-def render():
+def show():
     st.title(":material/g_translate: 文档翻译 - 云端资源集成")
-    st.markdown("支持上传并翻译多种办公文档，界面与旧版保持一致。")
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        files = st.file_uploader("上传文件", type=["docx", "pptx", "pdf", "xlsx", "txt"], accept_multiple_files=True)
-        src = st.selectbox("源语言", ["自动检测", "中文", "英文", "日文", "韩文", "德文", "法文"])
-        tgt = st.selectbox("目标语言", ["中文", "英文", "日文", "韩文", "德文", "法文"])
-        keep_layout = st.toggle("保留版式")
-        submitted = st.button("开始翻译", type="primary")
-    with col2:
-        st.subheader("进度")
-        st.progress(0)
-        st.caption("等待任务开始")
-    if submitted:
-        if files:
-            st.info("TODO: 调用 api_client")
-            st.success("已提交翻译任务")
-        else:
+    files = st.file_uploader("上传文件", type=["docx", "pdf", "xlsx", "pptx"], accept_multiple_files=True)
+    tgt = st.selectbox("目标语言", ["中文", "英语", "日语", "韩语", "德语", "法语"])
+    run = st.button("开始云端翻译", type="primary")
+    if run:
+        if not files:
             st.warning("请上传文件")
+            return
+        lang_map = {
+            "中文": "zh-Hans",
+            "英语": "en",
+            "日语": "ja",
+            "韩语": "ko",
+            "德语": "de",
+            "法语": "fr",
+        }
+        target_lang = lang_map.get(tgt, "zh-Hans")
+        for idx, f in enumerate(files, start=1):
+            name = f.name
+            ext = name.split(".")[-1].lower() if "." in name else ""
+            if ext == "docx":
+                mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            elif ext == "xlsx":
+                mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            elif ext == "pptx":
+                mime = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            elif ext == "pdf":
+                mime = "application/pdf"
+            else:
+                mime = "application/octet-stream"
+            content = f.getvalue()
+            files_payload = {"file": (name, content, mime)}
+            data_payload = {"target_lang": target_lang, "mode": "cloud"}
+            res_content, _ = api_client.upload_and_download("/doc-tools/translate/document", files=files_payload, data=data_payload)
+            if res_content:
+                download_name = f"trans_{name}"
+                st.download_button("下载翻译结果", data=res_content, file_name=download_name, type="primary", key=f"dl_{idx}_{name}")
+        st.success("翻译完成")
+
+render = show
