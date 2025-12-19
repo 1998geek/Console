@@ -1,3 +1,4 @@
+import uuid  # [新增] 引入 uuid 库
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from app.services.translator import TranslationService
@@ -34,20 +35,29 @@ async def translate_document(
 
     content = await file.read()
     
+    # [修复] 生成唯一的存储文件名，防止 Azure 报错 TargetFileAlreadyExists
+    # 使用 UUID + 原始文件名
+    storage_filename = f"{uuid.uuid4()}_{file.filename}"
+
     try:
         if mode == TranslationMode.CLOUD:
-            result_stream = await translator_service.translate_by_cloud(content, file.filename, target_lang)
+            # 传递 unique 的 storage_filename 给服务
+            result_stream = await translator_service.translate_by_cloud(content, storage_filename, target_lang)
         else:
+            # 本地模式不需要存储到 Azure Blob，直接使用原名或 unique 名均可，这里保持一致
             result_stream = await translator_service.translate_by_llm(content, file.filename, target_lang)
             
         # Reset stream position just in case
         result_stream.seek(0)
+        
+        # [保持] 下载给用户的文件名依然使用原始文件名 (加 translated_ 前缀)，保持用户体验
         output_filename = f"translated_{file.filename}"
         encoded_filename = quote(output_filename)
         headers = {"Content-Disposition": f"attachment; filename*=utf-8''{encoded_filename}"}
         return StreamingResponse(result_stream, media_type="application/octet-stream", headers=headers)
     except Exception as e:
         # Log the full error in a real app
+        print(f"Translation Error: {str(e)}") # 简单的后端日志打印
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
 
 @router.post("/translate/text", response_model=TextTranslationResponse)
